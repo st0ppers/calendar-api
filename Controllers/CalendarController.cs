@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace CalendarApi.Controllers;
 
 [ApiController]
-[Route("[controller]")]
-public class WeatherForecastController : ControllerBase
+[Route("api/[controller]")]
+
+public class CalendarController : ControllerBase
 {
 
     [HttpGet]
