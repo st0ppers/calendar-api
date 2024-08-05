@@ -1,17 +1,17 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CalendarApi.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
-
-public class PlayerController([FromServices] IPlayerRepository repository) : ControllerBase
+public class PlayerController([FromServices] IMongoRepository repository) : ControllerBase
 {
-
     [HttpGet("{id:int}")]
     public PlayerResponse Get([FromRoute] string id)
     {
-        Console.WriteLine(id);
+        var a = repository;
         return new PlayerResponse()
         {
             Color = "Blue",
@@ -23,7 +23,6 @@ public class PlayerController([FromServices] IPlayerRepository repository) : Con
     [HttpGet("{id:int}/player")]
     public PlayerResponse Get([FromRoute] int id)
     {
-        Console.WriteLine(id);
         return new PlayerResponse()
         {
             Color = "Blue",
@@ -41,32 +40,31 @@ public class PlayerController([FromServices] IPlayerRepository repository) : Con
     {
         return new PlayerResponse[]
         {
-
-      new PlayerResponse(){
-        Color= "Blue",
-        Name= "Alex",
-        FreeTime= new () {From= DateTime.UtcNow.AddDays(-1), To= DateTime.UtcNow}
-      },
-
-      new PlayerResponse(){
-        Color= "Pink",
-        Name= "Petur",
-        FreeTime= new () {From= DateTime.UtcNow.AddDays(-1), To= DateTime.UtcNow}
-      },
-
-      new PlayerResponse(){
-        Color= "Red",
-        Name= "Nasko",
-        FreeTime= new () {From= DateTime.UtcNow.AddDays(-1), To= DateTime.UtcNow}
-      },
-
-      new PlayerResponse(){
-        Color= "Green",
-        Name= "Jak",
-        FreeTime= new () {From= DateTime.UtcNow.AddDays(-1), To= DateTime.UtcNow}
-      },
-    };
-
+            new PlayerResponse()
+            {
+                Color = "Blue",
+                Name = "Alex",
+                FreeTime = new() { From = DateTime.UtcNow.AddDays(-1), To = DateTime.UtcNow }
+            },
+            new PlayerResponse()
+            {
+                Color = "Pink",
+                Name = "Petur",
+                FreeTime = new() { From = DateTime.UtcNow.AddDays(-1), To = DateTime.UtcNow }
+            },
+            new PlayerResponse()
+            {
+                Color = "Red",
+                Name = "Nasko",
+                FreeTime = new() { From = DateTime.UtcNow.AddDays(-1), To = DateTime.UtcNow }
+            },
+            new PlayerResponse()
+            {
+                Color = "Green",
+                Name = "Jak",
+                FreeTime = new() { From = DateTime.UtcNow.AddDays(-1), To = DateTime.UtcNow }
+            },
+        };
     }
 }
 
