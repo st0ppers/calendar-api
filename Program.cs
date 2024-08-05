@@ -1,6 +1,9 @@
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRrepository();
+builder.Services.AddRrepository()
+    .AddConfiguration(builder.Configuration)
+    .AddAuth(builder.Configuration);
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
