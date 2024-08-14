@@ -1,3 +1,5 @@
+using CalendarApi;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRrepository()

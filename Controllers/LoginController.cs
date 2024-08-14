@@ -1,5 +1,6 @@
-using System.Text.Json;
+using CalendarApi.Contracts.Response;
 using CalendarApi.Internal;
+using CalendarApi.Repository;
 using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,51 +10,37 @@ namespace CalendarApi.Controllers;
 [Route("api/[controller]")]
 public class LoginController(IMongoRepository repo, IConfiguration config) : ControllerBase
 {
-    // [Route("login")]
-    // [HttpPost]
-    // public async Task<bool> Login(LoginRequest request)
-    // {
-    //     var player = await repo.GetPlayer(request);
-    //     Console.WriteLine(JsonSerializer.Serialize(player.Value));
-    //     return player.Match(player => true, e => false);
-    // }
-
     [Route("login")]
     [HttpPost]
     public async Task<IActionResult> Login(LoginRequest request)
     {
-        var player = await repo.GetPlayer(request)
-            .Map(p =>
+        return await request.Validate()
+            .Map(x => x.ToLoginEntity())
+            .Bind(repo.GetPlayer)
+            .Map(player =>
             {
-                Console.WriteLine(JsonSerializer.Serialize(p));
-                if (p.Username == request.Username && p.Password == request.Password)
-                {
-                    return GetToken();
-                }
-                return BadRequest("Invalid username or password");
-            });
-        return player.Match(token => token, e => BadRequest(e.Message)); //TODO Return player with access token, not just token
+                //TODO Add test when this is null
+                var token = GetToken(player);
+                return new LoginResponse { Token = token.AccessToken, Player = player, Expiration = token.Expiration };
+            })
+            .Match(Ok, e => e.ToActonResult());
     }
 
     [Route("register")]
     [HttpPost]
-    public async Task<string> Register(LoginRequest request)
+    public async Task<ActionResult> Register(LoginRequest request)
     {
-        var player = await repo.RegisterPlayer(request);
-        return player.Match(player => $"{player}", e => e.Message);
+        return await request.Validate()
+            .Map(x => x.ToLoginEntity())
+            .Bind(repo.CheckIfUserExists)
+            .Map(_ => request.ToPlayerEntity())
+            .Bind(repo.RegisterPlayer)
+            .Match(Ok, e => e.ToActonResult());
     }
 
-    [Route("reset-password")]
-    [HttpPost]
-    public async Task<string> ResetPassword(LoginRequest request)
-    {
-        var player = await repo.GetPlayer(request);
-        return player.Match(player => $"Welcome {player.Username}", e => e.Message);
-    }
-
-    private IActionResult GetToken()
+    private TokenResponse GetToken(PlayerResponse player)
     {
         var jwt = config.GetRequiredSection(JwtOptions.Section).Get<JwtOptions>();
-        return Ok(TokenEndpoint.Connect(jwt!));
+        return TokenEndpoint.Connect(jwt, player);
     }
 }

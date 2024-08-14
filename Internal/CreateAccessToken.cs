@@ -1,30 +1,27 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CalendarApi.Contracts.Response;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CalendarApi.Internal;
 
 public static class TokenEndpoint
 {
-    public static IResult Connect(JwtOptions jwtOptions)
+    public static TokenResponse Connect(JwtOptions jwtOptions, PlayerResponse player)
     {
-        //TODO: implement the logic for username
-        var userName = "a";
-
         var tokenExpiration = TimeSpan.FromSeconds(jwtOptions.ExpirationSeconds);
         var accessToken = CreateAccessToken(
             jwtOptions,
-            userName,
+            player.Username,
             tokenExpiration,
             new[] { "UpdateFreeTime" });
 
-        return Results.Ok(new
+        return new()
         {
-            access_token = accessToken,
-            expiration = (int)tokenExpiration.TotalSeconds,
-            type = "bearer"
-        });
+            Expiration = (int)tokenExpiration.TotalSeconds,
+            AccessToken = accessToken,
+        };
     }
 
     static string CreateAccessToken(
@@ -42,8 +39,8 @@ public static class TokenEndpoint
 
         var claims = new List<Claim>()
         {
-             new Claim("username", username),
-             new Claim("audience", jwtOptions.Audience)
+            new("username", username),
+            new("audience", jwtOptions.Audience)
         };
 
         var roleClaims = permissions.Select(x => new Claim("role", x));

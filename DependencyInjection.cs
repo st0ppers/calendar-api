@@ -1,7 +1,10 @@
 using System.Text;
 using CalendarApi.Internal;
+using CalendarApi.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+
+namespace CalendarApi;
 
 public static class DependencyInjection
 {
@@ -36,7 +39,7 @@ public static class DependencyInjection
             {
                 byte[] signingKeyBytes = Encoding.UTF8.GetBytes(jwtOptions!.SigningKey);
 
-                opts.TokenValidationParameters = new TokenValidationParameters
+                opts.TokenValidationParameters = new()
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,

@@ -1,99 +1,61 @@
-using System.Text.Json;
 using CalendarApi.Contracts.Entities;
+using CalendarApi.Contracts.Response;
 using CalendarApi.Internal;
 using CSharpFunctionalExtensions;
-using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
+using static CalendarApi.Internal.Constants.Database;
+
+namespace CalendarApi.Repository;
 
 public interface IMongoRepository
 {
-    public Task<IEnumerable<Entity>> GetAll();
-    public Task<Result<PlayerEntity, Exception>> GetPlayer(LoginRequest request);
-    public Task<Result<bool, Exception>> RegisterPlayer(LoginRequest request);
+    public Task<Result<bool, Exception>> LoginPlayer(LoginEntity request);
+    public Task<Result<PlayerResponse, Exception>> GetPlayer(LoginEntity request);
+    public Task<Result<PlayerResponse, Exception>> RegisterPlayer(PlayerEntity entity);
+    public Task<Result<bool, Exception>> CheckIfUserExists(LoginEntity request);
 }
 
-public sealed class MongoRepository : IMongoRepository
+public sealed class MongoRepository(ConnectionManager connectionManager) : IMongoRepository
 {
-    //TODO: Maybe move to constants
-    private const string Database = "DungeonsAndDragons";
-    private const string Calendar = "Calendar";
-    private const string Login = "Login";
-
-    private readonly ConnectionString _connectionString;
-    private readonly ConnectionManager _connectionManager;
-
-    public MongoRepository(
-        IOptions<ConnectionString> connectionString,
-        ConnectionManager connectionManager
-    )
+    public async Task<Result<bool, Exception>> LoginPlayer(LoginEntity request)
     {
-        _connectionString = connectionString.Value;
-        _connectionManager = connectionManager;
-    }
-
-    public async Task<IEnumerable<Entity>> GetAll()
-    {
-        var settings = MongoClientSettings.FromConnectionString(_connectionString.Default);
-        var client = new MongoClient(settings);
-        var db = client.GetDatabase(Database);
-        var collection = db.GetCollection<Entity>(Calendar);
-
-        var a = await collection.FindAsync(_ => true);
-
-        return a.ToList();
-    }
-
-    public async Task<Result<PlayerEntity, Exception>> GetPlayer(LoginRequest request)
-    {
-        var sdf = new PlayerEntity { Username = "sdf", Password = "sdf" };
-        var a = await Result.Try(
-            async () =>
+        return await connectionManager.ExecuteCollectionAsync<bool, PlayerEntity>(async coll =>
             {
-                var test = await _connectionManager.ExecuteAsync(async db =>
-                {
-                    var collection = db.GetCollection<PlayerEntity>(Login);
-
-                    var player = await collection.FindAsync(x =>
-                        x.Username == request.Username && x.Password == request.Password
-                    );
-                    return await player.FirstOrDefaultAsync() ?? sdf; //TODO: try to return exception
-                });
-
-                return test.Match(player => player, e => sdf); //TODO: Add custom exception;
-            },
-            e => e
-        );
-        return a;
+                var result = await coll.FindAsync(x => x.Username == request.Username && x.Password == request.Password);
+                return await result.AnyAsync();
+            }, Login)
+            .Bind(x => x ? Result.Success<bool, Exception>(x) : InvalidCredentialException.New());
     }
 
-    public async Task<Result<bool, Exception>> RegisterPlayer(LoginRequest request)
+    public async Task<Result<PlayerResponse, Exception>> GetPlayer(LoginEntity request)
     {
-        return await _connectionManager.ExecuteAsync(db =>
-        {
-            var collection = db.GetCollection<PlayerEntity>(Login);
-
-            var a = collection.Find(x => x.Username == request.Username).FirstOrDefaultAsync();
-            if (a == null)
+        return await connectionManager.ExecuteAsync(async db =>
             {
-                //TODO: Add custom exception (User already exists)
-                return Task.FromResult(false);
-            }
-            collection.InsertOne(
-                new PlayerEntity { Username = request.Username, Password = request.Password }
-            );
-            return Task.FromResult(true);
-        });
-    }
-}
+                var player = await db.GetCollection<PlayerEntity>(Login)
+                    .FindAsync(x => x.Username == request.Username && x.Password == request.Password);
 
-public sealed class Entity
-{
-    [BsonId]
-    public ObjectId Id { get; set; }
-    public int UserId { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Color { get; set; } = string.Empty;
-    public FreeTime FreeTime { get; set; } = new();
+                return await player.FirstAsync();
+            })
+            .Map(x => x.ToResponse());
+    }
+
+    public async Task<Result<PlayerResponse, Exception>> RegisterPlayer(PlayerEntity entity)
+    {
+        return await connectionManager.ExecuteCollectionAsync<PlayerEntity, PlayerEntity>(async coll =>
+            {
+                await coll.InsertOneAsync(entity);
+                return entity;
+            }, Login)
+            .Map(x => x.ToResponse());
+    }
+
+    public async Task<Result<bool, Exception>> CheckIfUserExists(LoginEntity request)
+    {
+        return await connectionManager.ExecuteCollectionAsync<bool, PlayerEntity>(async coll =>
+            {
+                var result = await coll.FindAsync(x => x.Username == request.Username);
+                return await result.AnyAsync();
+            }, Login)
+            .Bind(x => x ? UserAlreadyExists.New(request.Username) : Result.Success<bool, Exception>(x));
+    }
 }
