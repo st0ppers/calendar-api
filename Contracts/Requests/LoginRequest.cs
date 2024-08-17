@@ -1,9 +1,7 @@
-using MongoDB.Bson.Serialization.Attributes;
+namespace CalendarApi.Contracts.Requests;
 
 public sealed class LoginRequest
 {
-    [BsonId]
-    public int Id { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
+    public string Username { get; init; } = string.Empty;
+    public string Password { get; init; } = string.Empty;
 }

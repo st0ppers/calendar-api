@@ -2,7 +2,7 @@
 
 public sealed class LoginResponse
 {
-    public PlayerResponse Player { get; set; }
-    public string Token { get; set; }
-    public int Expiration { get; set; }
+    public PlayerResponse Player { get; init; }
+    public string Token { get; init; } = string.Empty;
+    public int Expiration { get; init; }
 }

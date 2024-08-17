@@ -1,3 +1,4 @@
+using CalendarApi.Contracts.Requests;
 using CalendarApi.Contracts.Response;
 using CalendarApi.Internal;
 using CalendarApi.Repository;
@@ -12,10 +13,9 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
 {
     [Route("login")]
     [HttpPost]
-    public async Task<IActionResult> Login(LoginRequest request)
-    {
-        return await request.Validate()
-            .Map(x => x.ToLoginEntity())
+    public async Task<IActionResult> Login(LoginRequest request) =>
+        await request.Validate()
+            .Map(x => x.LoginToPlayerEntity())
             .Bind(repo.GetPlayer)
             .Map(player =>
             {
@@ -24,19 +24,16 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
                 return new LoginResponse { Token = token.AccessToken, Player = player, Expiration = token.Expiration };
             })
             .Match(Ok, e => e.ToActonResult());
-    }
 
     [Route("register")]
     [HttpPost]
-    public async Task<ActionResult> Register(LoginRequest request)
-    {
-        return await request.Validate()
-            .Map(x => x.ToLoginEntity())
+    public async Task<ActionResult> Register(RegisterRequest request) =>
+        await request.Validate()
+            .Map(x => x.RegisterToLogin())
             .Bind(repo.CheckIfUserExists)
-            .Map(_ => request.ToPlayerEntity())
+            .Map(_ => request.RegisterToLogin())
             .Bind(repo.RegisterPlayer)
             .Match(Ok, e => e.ToActonResult());
-    }
 
     private TokenResponse GetToken(PlayerResponse player)
     {

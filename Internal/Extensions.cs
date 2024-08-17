@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using CalendarApi.Contracts.Requests;
+using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CalendarApi.Internal;
@@ -21,5 +22,12 @@ public static class Extensions
         Validator<LoginRequest>.Instance(request)
             .Validate(x => string.IsNullOrWhiteSpace(x.Username), "Username should not be empty or null")
             .Validate(x => x.Password.Length < 8, "Password should be at least 8 characters long")
+            .ToResult();
+
+    public static Result<RegisterRequest, Exception> Validate(this RegisterRequest request) =>
+        Validator<RegisterRequest>.Instance(request)
+            .Validate(x => string.IsNullOrWhiteSpace(x.Username), "Username should not be empty or null")
+            .Validate(x => x.Password.Length < 8, "Password should be at least 8 characters long")
+            .Validate(x => x.Color.Length < 3, "Color should be at least 3 characters long")
             .ToResult();
 }

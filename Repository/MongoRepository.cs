@@ -9,25 +9,15 @@ namespace CalendarApi.Repository;
 
 public interface IMongoRepository
 {
-    public Task<Result<bool, Exception>> LoginPlayer(LoginEntity request);
-    public Task<Result<PlayerResponse, Exception>> GetPlayer(LoginEntity request);
+    public Task<Result<PlayerResponse, Exception>> GetPlayer(PlayerEntity request);
     public Task<Result<PlayerResponse, Exception>> RegisterPlayer(PlayerEntity entity);
-    public Task<Result<bool, Exception>> CheckIfUserExists(LoginEntity request);
+    public Task<Result<bool, Exception>> CheckIfUserExists(PlayerEntity request);
+    public Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId);
 }
 
 public sealed class MongoRepository(ConnectionManager connectionManager) : IMongoRepository
 {
-    public async Task<Result<bool, Exception>> LoginPlayer(LoginEntity request)
-    {
-        return await connectionManager.ExecuteCollectionAsync<bool, PlayerEntity>(async coll =>
-            {
-                var result = await coll.FindAsync(x => x.Username == request.Username && x.Password == request.Password);
-                return await result.AnyAsync();
-            }, Login)
-            .Bind(x => x ? Result.Success<bool, Exception>(x) : InvalidCredentialException.New());
-    }
-
-    public async Task<Result<PlayerResponse, Exception>> GetPlayer(LoginEntity request)
+    public async Task<Result<PlayerResponse, Exception>> GetPlayer(PlayerEntity request)
     {
         return await connectionManager.ExecuteAsync(async db =>
             {
@@ -49,7 +39,7 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
             .Map(x => x.ToResponse());
     }
 
-    public async Task<Result<bool, Exception>> CheckIfUserExists(LoginEntity request)
+    public async Task<Result<bool, Exception>> CheckIfUserExists(PlayerEntity request)
     {
         return await connectionManager.ExecuteCollectionAsync<bool, PlayerEntity>(async coll =>
             {
@@ -57,5 +47,15 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 return await result.AnyAsync();
             }, Login)
             .Bind(x => x ? UserAlreadyExists.New(request.Username) : Result.Success<bool, Exception>(x));
+    }
+
+    public async Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId)
+    {
+        return await connectionManager.ExecuteCollectionAsync<IEnumerable<PlayerEntity>, PlayerEntity>(async coll =>
+            {
+                var result = await coll.FindAsync(x => x.GroupId == groupId);
+                return await result.ToListAsync();
+            }, Login)
+            .Map(e => e.Select(x => x.ToResponse()));
     }
 }
