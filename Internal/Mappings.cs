@@ -8,5 +8,6 @@ public static class Mappings
 {
     public static PlayerEntity RegisterToLogin(this RegisterRequest request) => new() { Username = request.Username, Password = request.Password, Color = request.Color };
     public static PlayerEntity LoginToPlayerEntity(this LoginRequest request) => new() { Username = request.Username, Password = request.Password };
-    public static PlayerResponse ToResponse(this PlayerEntity entity) => new() { Username = entity.Username, Color = entity.Color, FreeTime = entity.FreeTime };
+    public static PlayerResponse ToResponse(this PlayerEntity entity) => new() { Username = entity.Username, Color = entity.Color, FreeTime = entity.FreeTime, Id = entity.Id };
+    public static UpdateFreeTimeEntity ToEntity(this UpdateFreeTimeRequest request) => new() { PlayerId = request.PlayerId, From = request.From, To = request.To };
 }

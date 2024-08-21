@@ -1,3 +1,4 @@
+using CalendarApi.Contracts.Requests;
 using CalendarApi.Internal;
 using CalendarApi.Repository;
 using CSharpFunctionalExtensions;
@@ -11,8 +12,16 @@ namespace CalendarApi.Controllers;
 [Route("api/[controller]")]
 public class PlayerController([FromServices] IMongoRepository repository) : ControllerBase
 {
-    [HttpGet("{groupId:int}")]
-    public async Task<IActionResult> GetAll(int groupId) =>
-        await repository.GetAll(groupId)
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] GroupIdRequest request) =>
+        await request.Validate()
+            .Bind(x => repository.GetAll(x.GroupId))
             .Match(Ok, e => e.ToActonResult());
+
+    [HttpPost("update-free-time")]
+    public async Task<IActionResult> UpdateFreeTime([FromBody] UpdateFreeTimeRequest request) =>
+        await request.Validate()
+            .Map(x => x.ToEntity())
+            .Bind(repository.UpdateFreeTime)
+            .Match(x => Ok(x), e => e.ToActonResult());
 }

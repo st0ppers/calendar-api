@@ -30,4 +30,14 @@ public static class Extensions
             .Validate(x => x.Password.Length < 8, "Password should be at least 8 characters long")
             .Validate(x => x.Color.Length < 3, "Color should be at least 3 characters long")
             .ToResult();
+
+    public static Result<UpdateFreeTimeRequest, Exception> Validate(this UpdateFreeTimeRequest request) =>
+        Validator<UpdateFreeTimeRequest>.Instance(request)
+            .Validate(x => x.From > x.To, "From should be less than To")
+            .ToResult();
+
+    public static Result<GroupIdRequest, Exception> Validate(this GroupIdRequest request) =>
+        Validator<GroupIdRequest>.Instance(request)
+            .Validate(x => x.GroupId <= 0, "GroupId should be greater than 0")
+            .ToResult();
 }
