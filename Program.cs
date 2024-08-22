@@ -2,7 +2,9 @@ using CalendarApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRrepository()
+builder
+    .Services.AddSerilog(builder.Configuration)
+    .AddRrepository()
     .AddConfiguration(builder.Configuration)
     .AddAuth(builder.Configuration);
 
@@ -20,11 +22,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 
     //enable cors policy for every ednpoint
-    app.UseCors(x => x
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials()
-        .SetIsOriginAllowed(_ => true));
+    app.UseCors(x =>
+        x.AllowAnyMethod().AllowAnyHeader().AllowCredentials().SetIsOriginAllowed(_ => true)
+    );
 }
 
 app.UseHttpsRedirection();

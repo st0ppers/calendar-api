@@ -6,4 +6,4 @@
 - [x] Implement Calendar controller
 - [x] Implement Calendar repository
 - [ ] Add unit tests
-- [ ] Add logging
+- [x] Add logging

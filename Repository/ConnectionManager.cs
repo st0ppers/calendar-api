@@ -2,6 +2,7 @@ using CalendarApi.Internal;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using Serilog;
 
 namespace CalendarApi.Repository;
 
@@ -19,6 +20,7 @@ public sealed class ConnectionManager(IOptions<ConnectionString> connectionStrin
             var settings = MongoClientSettings.FromConnectionString(connectionString.Value.Default);
             var client = new MongoClient(settings);
             var db = client.GetDatabase(Constants.Database.Name);
+            Log.Debug("Established connection to db: {Database}", db.DatabaseNamespace.DatabaseName);
 
             return await func(db);
         }
@@ -37,6 +39,7 @@ public sealed class ConnectionManager(IOptions<ConnectionString> connectionStrin
             var client = new MongoClient(settings);
             var db = client.GetDatabase(Constants.Database.Name);
             var collection = db.GetCollection<TR>(collectionName);
+            Log.Debug("Established connection to db: {Database}", db.DatabaseNamespace.DatabaseName);
 
             return await func(collection);
         }
@@ -47,3 +50,4 @@ public sealed class ConnectionManager(IOptions<ConnectionString> connectionStrin
         }
     }
 }
+
