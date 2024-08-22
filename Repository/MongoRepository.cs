@@ -12,7 +12,7 @@ public interface IMongoRepository
 {
     public Task<Result<PlayerResponse, Exception>> GetPlayer(PlayerEntity entity);
     public Task<Result<PlayerResponse, Exception>> RegisterPlayer(PlayerEntity entity);
-    public Task<Result<bool, Exception>> CheckIfUserExists(PlayerEntity entity);
+    public Task<Result<PlayerEntity, Exception>> CheckIfUserExists(PlayerEntity entity);
     public Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId);
     public Task<Result<long, Exception>> UpdateFreeTime(UpdateFreeTimeEntity entity);
 }
@@ -20,10 +20,9 @@ public interface IMongoRepository
 public sealed class MongoRepository(ConnectionManager connectionManager) : IMongoRepository
 {
     public async Task<Result<PlayerResponse, Exception>> GetPlayer(PlayerEntity request) =>
-        await connectionManager.ExecuteAsync(async db =>
+        await connectionManager.ExecuteCollectionAsync<PlayerEntity, PlayerEntity>(async coll =>
             {
-                var player = await db.GetCollection<PlayerEntity>(Login)
-                    .FindAsync(x => x.Username == request.Username && x.Password == request.Password);
+                var player = await coll.FindAsync(x => x.Username == request.Username && x.Password == request.Password);
                 return await player.FirstAsync();
             })
             .Map(x => x.ToResponse());
@@ -33,23 +32,23 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
             {
                 await coll.InsertOneAsync(entity);
                 return entity;
-            }, Login)
+            })
             .Map(x => x.ToResponse());
 
-    public async Task<Result<bool, Exception>> CheckIfUserExists(PlayerEntity request) =>
+    public async Task<Result<PlayerEntity, Exception>> CheckIfUserExists(PlayerEntity entity) =>
         await connectionManager.ExecuteCollectionAsync<bool, PlayerEntity>(async coll =>
             {
-                var result = await coll.FindAsync(x => x.Username == request.Username);
+                var result = await coll.FindAsync(x => x.Username == entity.Username);
                 return await result.AnyAsync();
-            }, Login)
-            .Bind(x => x ? UserAlreadyExists.New(request.Username) : Result.Success<bool, Exception>(x));
+            })
+            .Bind(x => x ? UserAlreadyExists.New(entity.Username) : Result.Success<PlayerEntity, Exception>(entity));
 
     public async Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId) =>
         await connectionManager.ExecuteCollectionAsync<IEnumerable<PlayerEntity>, PlayerEntity>(async coll =>
             {
                 var result = await coll.FindAsync(x => x.GroupId == groupId);
                 return await result.ToListAsync();
-            }, Login)
+            })
             .Map(e => e.Select(x => x.ToResponse()));
 
     public async Task<Result<long, Exception>> UpdateFreeTime(UpdateFreeTimeEntity entity) =>
@@ -60,5 +59,5 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 x => x.Id == entity.PlayerId,
                 Builders<PlayerEntity>.Update.Set(x => x.FreeTime, freeTime));
             return result.ModifiedCount;
-        }, Login);
+        });
 }

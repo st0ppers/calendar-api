@@ -31,8 +31,13 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
         await request.Validate()
             .Map(x => x.RegisterToLogin())
             .Bind(repo.CheckIfUserExists)
-            .Map(_ => request.RegisterToLogin())
             .Bind(repo.RegisterPlayer)
+            .Map(player =>
+            {
+                //TODO Add test when this is null
+                var token = GetToken(player);
+                return new LoginResponse { Token = token.AccessToken, Player = player, Expiration = token.Expiration };
+            })
             .Match(Ok, e => e.ToActonResult());
 
     private TokenResponse GetToken(PlayerResponse player)
