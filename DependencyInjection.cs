@@ -1,4 +1,8 @@
 using System.Text;
+using App.Metrics;
+using App.Metrics.AspNetCore;
+using App.Metrics.Formatters.Prometheus;
+using CalendarApi.Contracts.Configurations;
 using CalendarApi.Internal;
 using CalendarApi.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,22 +13,18 @@ namespace CalendarApi;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddRrepository(this IServiceCollection services)
-    {
-        services.AddSingleton<ConnectionManager>();
-        services.AddSingleton<IMongoRepository, MongoRepository>();
-        return services;
-    }
+    public static IServiceCollection AddRepository(this IServiceCollection services) =>
+        services
+            .AddSingleton<ConnectionManager>()
+            .AddSingleton<IMongoRepository, MongoRepository>()
+            .Decorate<IMongoRepository, DecoratedMongoRepository>();
 
-    public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration config)
-    {
-        services.Configure<ConnectionString>(config.GetSection(ConnectionString.Section));
-        services.Configure<JwtOptions>(config.GetSection(JwtOptions.Section));
+    public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration config) =>
+        services
+            .Configure<ConnectionString>(config.GetSection(ConnectionString.Section))
+            .Configure<JwtOptions>(config.GetSection(JwtOptions.Section));
 
-        return services;
-    }
-
-    public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration config)
+    public static void AddAuth(this IServiceCollection services, IConfiguration config)
     {
         var jwtOptions = config.GetRequiredSection(JwtOptions.Section).Get<JwtOptions>();
 
@@ -42,17 +42,32 @@ public static class DependencyInjection
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(signingKeyBytes),
+                    IssuerSigningKey = new SymmetricSecurityKey(signingKeyBytes)
                 };
             });
-
-        return services;
     }
 
     public static IServiceCollection AddSerilog(this IServiceCollection services, IConfiguration config)
     {
         Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
-
         return services.AddLogging(builder => builder.AddSerilog());
+    }
+
+    public static void ConfigureMetrics(this ConfigureHostBuilder host)
+    {
+        var metrics = AppMetrics.CreateDefaultBuilder()
+            .OutputMetrics.AsPrometheusPlainText()
+            .OutputMetrics.AsPrometheusProtobuf()
+            .Build();
+
+        host.ConfigureMetrics(metrics)
+            .UseMetrics(op =>
+            {
+                op.EndpointOptions = endpointOptions =>
+                {
+                    endpointOptions.MetricsTextEndpointOutputFormatter = Metrics.Instance.OutputMetricsFormatters.OfType<MetricsPrometheusTextOutputFormatter>().First();
+                    endpointOptions.MetricsEndpointOutputFormatter = Metrics.Instance.OutputMetricsFormatters.OfType<MetricsPrometheusProtobufOutputFormatter>().First();
+                };
+            });
     }
 }

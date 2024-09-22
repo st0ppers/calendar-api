@@ -1,6 +1,7 @@
 ﻿using CalendarApi.Contracts.Requests;
 using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
+using Serilog;
 
 namespace CalendarApi.Internal;
 
@@ -40,4 +41,7 @@ public static class Extensions
         Validator<GroupIdRequest>.Instance(request)
             .Validate(x => x.GroupId <= 0, "GroupId should be greater than 0")
             .ToResult();
+
+    public static Task<Result<T, Exception>> LogError<T>(this Task<Result<T, Exception>> task) =>
+        task.TapError(e => Log.Error("Error occurred with message: {Error}", e.Message));
 }

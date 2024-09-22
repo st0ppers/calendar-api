@@ -1,3 +1,4 @@
+using CalendarApi.Contracts.Configurations;
 using CalendarApi.Internal;
 using CSharpFunctionalExtensions;
 using Microsoft.Extensions.Options;
@@ -37,6 +38,8 @@ public sealed class ConnectionManager(IOptions<ConnectionString> connectionStrin
         {
             var settings = MongoClientSettings.FromConnectionString(connectionString.Value.Default);
             var client = new MongoClient(settings);
+            MetricsOptions.CountDatabaseConnections();
+            
             var db = client.GetDatabase(Constants.Database.Name);
             var collection = db.GetCollection<TR>(collectionName);
             Log.Debug("Established connection to db: {Database}", db.DatabaseNamespace.DatabaseName);

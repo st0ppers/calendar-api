@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using CalendarApi.Contracts.Configurations;
 using CalendarApi.Contracts.Response;
 using Microsoft.IdentityModel.Tokens;
 

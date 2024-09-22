@@ -4,7 +4,7 @@ using CalendarApi.Contracts.Response;
 using CalendarApi.Internal;
 using CSharpFunctionalExtensions;
 using MongoDB.Driver;
-using Serilog;
+using static CalendarApi.Internal.Mappings;
 
 namespace CalendarApi.Repository;
 
@@ -26,8 +26,7 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 var player = await coll.FindAsync(x => x.Username == request.Username && x.Password == request.Password);
                 return await player.FirstAsync();
             })
-            .Tap(x => Log.Debug("Player {Username} logged in", x.Username))
-            .Map(x => x.ToResponse());
+            .Map(ToResponse);//TODO Add to service because repo is not responsible for mapping
 
     public async Task<Result<PlayerResponse, Exception>> RegisterPlayer(PlayerEntity entity) =>
         await connectionManager
@@ -36,8 +35,7 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 await coll.InsertOneAsync(entity);
                 return entity;
             })
-            .Tap(x => Log.Debug("Player {Username} registered", x.Username))
-            .Map(x => x.ToResponse());
+            .Map(ToResponse);
 
     public async Task<Result<PlayerEntity, Exception>> CheckIfUserExists(PlayerEntity entity) =>
         await connectionManager
@@ -46,7 +44,6 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 var result = await coll.FindAsync(x => x.Username == entity.Username);
                 return await result.AnyAsync();
             })
-            .Tap(x => Log.Debug("Checking if {Username} exists", entity.Username))
             .Bind(x => x ? UserAlreadyExists.New(entity.Username) : Result.Success<PlayerEntity, Exception>(entity));
 
     public async Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId) =>
@@ -56,8 +53,7 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 var result = await coll.FindAsync(x => x.GroupId == groupId);
                 return await result.ToListAsync();
             })
-            .Tap(x => Log.Debug("Getting all players for GroupId: {Id}", groupId))
-            .Map(e => e.Select(x => x.ToResponse()));
+            .Map(e => e.Select(ToResponse));
 
     public async Task<Result<long, Exception>> UpdateFreeTime(UpdateFreeTimeEntity entity) =>
         await connectionManager
@@ -66,7 +62,6 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 var freeTime = new FreeTime { From = entity.From, To = entity.To };
                 var result = await coll.UpdateOneAsync(x => x.Id == entity.PlayerId, Builders<PlayerEntity>.Update.Set(x => x.FreeTime, freeTime));
                 return result.ModifiedCount;
-            })
-            .Tap(x => Log.Debug("Updating free time for PlayerId: {Id}", entity.PlayerId));
+            });
 }
 

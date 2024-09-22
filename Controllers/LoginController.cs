@@ -1,3 +1,4 @@
+using CalendarApi.Contracts.Configurations;
 using CalendarApi.Contracts.Requests;
 using CalendarApi.Contracts.Response;
 using CalendarApi.Internal;
@@ -5,6 +6,7 @@ using CalendarApi.Repository;
 using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using static CalendarApi.Internal.Mappings;
 
 namespace CalendarApi.Controllers;
 
@@ -18,7 +20,7 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
         await request
             .Validate()
             .Tap(x => Log.Debug("Logging in {Username}", x.Username))
-            .Map(x => x.LoginToPlayerEntity())
+            .Map(RequestToPlayerEntity)
             .Bind(repo.GetPlayer)
             .Map(player =>
             {
@@ -31,7 +33,9 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
                     Expiration = token.Expiration,
                 };
             })
-            .TapError(e => Log.Error("Error in login with message: {Error}", e.Message))
+            .CountRequest()
+            .CountFailedRequest()
+            .LogError()
             .Match(Ok, e => e.ToActonResult());
 
     [Route("register")]
@@ -40,7 +44,7 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
         await request
             .Validate()
             .Tap(x => Log.Debug("Registering {Username}", x.Username))
-            .Map(x => x.RegisterToLogin())
+            .Map(RequestToEntity)
             .Bind(repo.CheckIfUserExists)
             .Bind(repo.RegisterPlayer)
             .Map(player =>
@@ -54,7 +58,9 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
                     Expiration = token.Expiration,
                 };
             })
-            .TapError(e => Log.Error("Error in register with message: {Error}", e.Message))
+            .CountRequest()
+            .CountFailedRequest()
+            .LogError()
             .Match(Ok, e => e.ToActonResult());
 
     private TokenResponse GetToken(PlayerResponse player)

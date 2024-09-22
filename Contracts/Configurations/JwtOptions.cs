@@ -1,4 +1,4 @@
-namespace CalendarApi.Internal;
+namespace CalendarApi.Contracts.Configurations;
 
 public sealed class JwtOptions
 {
