@@ -15,6 +15,7 @@
         <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2"/>
         <PackageReference Include="MongoDB.Driver" Version="2.28.0"/>
         <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
         <PackageReference Include="Serilog.Sinks.OpenTelemetry" Version="4.1.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.3"/>
         <PackageReference Include="App.Metrics" Version="4.3.0"/>

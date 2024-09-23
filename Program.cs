@@ -7,6 +7,7 @@ builder
     .AddRepository()
     .AddConfiguration(builder.Configuration)
     .AddAuth(builder.Configuration);
+builder.Services.AddHealthChecks();
 
 builder.Services.AddControllers();
 builder.Host.ConfigureMetrics();
@@ -27,6 +28,8 @@ if (app.Environment.IsDevelopment())
         .AllowCredentials()
         .SetIsOriginAllowed(_ => true));
 }
+
+app.MapHealthChecks("/healthz");
 
 app.UseHttpsRedirection();
 
