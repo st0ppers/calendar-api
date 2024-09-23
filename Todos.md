@@ -7,3 +7,4 @@
 - [x] Implement Calendar repository
 - [ ] Add unit tests
 - [x] Add logging
+- [x] Add metrics

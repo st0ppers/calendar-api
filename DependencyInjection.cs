@@ -8,6 +8,7 @@ using CalendarApi.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Serilog.Sinks.OpenTelemetry;
 
 namespace CalendarApi;
 
@@ -22,6 +23,7 @@ public static class DependencyInjection
     public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration config) =>
         services
             .Configure<ConnectionString>(config.GetSection(ConnectionString.Section))
+            .Configure<OpenTelemetryOptions>(config.GetSection(OpenTelemetryOptions.Section))
             .Configure<JwtOptions>(config.GetSection(JwtOptions.Section));
 
     public static void AddAuth(this IServiceCollection services, IConfiguration config)
@@ -47,10 +49,28 @@ public static class DependencyInjection
             });
     }
 
-    public static IServiceCollection AddSerilog(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddSerilog(this WebApplicationBuilder builder)
     {
-        Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(config).CreateLogger();
-        return services.AddLogging(builder => builder.AddSerilog());
+        builder.Logging.ClearProviders();
+        var openTelemetryOptions = builder.Configuration.GetRequiredSection(OpenTelemetryOptions.Section).Get<OpenTelemetryOptions>();
+        Log.Logger = new LoggerConfiguration().ReadFrom
+            .Configuration(builder.Configuration)
+            .WriteTo.OpenTelemetry(x =>
+            {
+                x.Endpoint = openTelemetryOptions!.Endpoint;
+                x.Protocol = OtlpProtocol.HttpProtobuf;
+                x.Headers = new Dictionary<string, string>
+                {
+                    ["X-Seq-ApiKey"] = openTelemetryOptions.ApiKey
+                };
+                x.ResourceAttributes = new Dictionary<string, object>
+                {
+                    ["service.name"] = Constants.App,
+                    ["environment"] = builder.Environment.EnvironmentName
+                };
+            })
+            .CreateLogger();
+        return builder.Services.AddLogging(b => b.AddSerilog());
     }
 
     public static void ConfigureMetrics(this ConfigureHostBuilder host)

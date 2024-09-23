@@ -2,9 +2,10 @@ using CalendarApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRepository()
+builder
+    .AddSerilog()
+    .AddRepository()
     .AddConfiguration(builder.Configuration)
-    .AddSerilog(builder.Configuration)
     .AddAuth(builder.Configuration);
 
 builder.Services.AddControllers();

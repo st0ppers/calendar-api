@@ -19,7 +19,7 @@ public class PlayerController([FromServices] IMongoRepository repository) : Cont
             .Validate()
             .Tap(x => Log.Debug("Getting all players for GroupId: {Id}", x.GroupId))
             .Bind(x => repository.GetAll(x.GroupId))
-            .TapError(e => Log.Error("Error in getting all players with message: {Error}", e.Message))
+            .LogError()
             .Match(Ok, e => e.ToActonResult());
 
     [HttpPost("update-free-time")]
@@ -29,6 +29,6 @@ public class PlayerController([FromServices] IMongoRepository repository) : Cont
             .Tap(x => Log.Debug("Updating free time for PlayerId: {Id}", x.PlayerId))
             .Map(x => x.ToEntity())
             .Bind(repository.UpdateFreeTime)
-            .TapError(e => Log.Error("Error in updating free time with message: {Error}", e.Message))
+            .LogError()
             .Match(x => Ok(x), e => e.ToActonResult());
 }

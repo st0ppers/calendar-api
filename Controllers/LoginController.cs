@@ -22,17 +22,7 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
             .Tap(x => Log.Debug("Logging in {Username}", x.Username))
             .Map(RequestToPlayerEntity)
             .Bind(repo.GetPlayer)
-            .Map(player =>
-            {
-                //TODO Add test when this is null
-                var token = GetToken(player);
-                return new LoginResponse
-                {
-                    Token = token.AccessToken,
-                    Player = player,
-                    Expiration = token.Expiration,
-                };
-            })
+            .Map(PlayerToLoginResponse)
             .CountRequest()
             .CountFailedRequest()
             .LogError()
@@ -47,25 +37,22 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
             .Map(RequestToEntity)
             .Bind(repo.CheckIfUserExists)
             .Bind(repo.RegisterPlayer)
-            .Map(player =>
-            {
-                //TODO Add test when this is null
-                var token = GetToken(player);
-                return new LoginResponse
-                {
-                    Token = token.AccessToken,
-                    Player = player,
-                    Expiration = token.Expiration,
-                };
-            })
+            .Map(PlayerToLoginResponse)
             .CountRequest()
             .CountFailedRequest()
             .LogError()
             .Match(Ok, e => e.ToActonResult());
 
-    private TokenResponse GetToken(PlayerResponse player)
+    private LoginResponse PlayerToLoginResponse(PlayerResponse response)
     {
         var jwt = config.GetRequiredSection(JwtOptions.Section).Get<JwtOptions>();
-        return TokenEndpoint.Connect(jwt!, player);
+        //TODO Add test when this is null
+        var token = TokenEndpoint.Connect(jwt!, response);
+        return new()
+        {
+            Token = token.AccessToken,
+            Player = response,
+            Expiration = token.Expiration,
+        };
     }
 }
