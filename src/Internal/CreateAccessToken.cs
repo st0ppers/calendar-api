@@ -3,26 +3,28 @@ using System.Security.Claims;
 using System.Text;
 using CalendarApi.Contracts.Configurations;
 using CalendarApi.Contracts.Response;
+using CSharpFunctionalExtensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CalendarApi.Internal;
 
 public static class TokenEndpoint
 {
-    public static TokenResponse Connect(JwtOptions jwtOptions, PlayerResponse player)
+    public static Result<TokenResponse, Exception> Connect(JwtOptions jwtOptions, PlayerResponse player)
     {
         var tokenExpiration = TimeSpan.FromSeconds(jwtOptions.ExpirationSeconds);
         var accessToken = CreateAccessToken(
             jwtOptions,
             player.Username,
             tokenExpiration,
-            new[] { "UpdateFreeTime" });
+            ["UpdateFreeTime"]);
 
-        return new()
+        var token =  new TokenResponse()
         {
             Expiration = (int)tokenExpiration.TotalSeconds,
             AccessToken = accessToken,
         };
+        return Result.Success<TokenResponse, Exception>(token);
     }
 
     static string CreateAccessToken(

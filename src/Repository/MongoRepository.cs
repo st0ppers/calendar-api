@@ -44,7 +44,8 @@ public sealed class MongoRepository(ConnectionManager connectionManager) : IMong
                 var result = await coll.FindAsync(x => x.Username == entity.Username);
                 return await result.AnyAsync();
             })
-            .Bind(x => x ? UserAlreadyExists.New(entity.Username) : Result.Success<PlayerEntity, Exception>(entity));
+            .Ensure(x => x, _=> UserAlreadyExists.New(entity.Username))
+            .Map(_ => entity);
 
     public async Task<Result<IEnumerable<PlayerResponse>, Exception>> GetAll(int groupId) =>
         await connectionManager

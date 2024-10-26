@@ -16,7 +16,7 @@ public static class Extensions
             DatabaseException de => new StatusCodeResult(StatusCodes.Status500InternalServerError),
             InvalidCredentialException ice => new BadRequestObjectResult(ice.Message),
             ValidationException ve => new BadRequestObjectResult(ve.Message),
-            _ => new BadRequestObjectResult(e.Message)
+            _ => new StatusCodeResult(StatusCodes.Status500InternalServerError),
         };
     }
 

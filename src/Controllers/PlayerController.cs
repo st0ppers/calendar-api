@@ -5,6 +5,7 @@ using CSharpFunctionalExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using static CalendarApi.Internal.Mappings;
 
 namespace CalendarApi.Controllers;
 
@@ -13,6 +14,7 @@ namespace CalendarApi.Controllers;
 [Route("api/[controller]")]
 public class PlayerController([FromServices] IMongoRepository repository) : ControllerBase
 {
+    //TODO Add metrics
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] GroupIdRequest request) =>
         await request
@@ -27,7 +29,7 @@ public class PlayerController([FromServices] IMongoRepository repository) : Cont
         await request
             .Validate()
             .Tap(x => Log.Debug("Updating free time for PlayerId: {Id}", x.PlayerId))
-            .Map(x => x.ToEntity())
+            .Map(ToEntity)
             .Bind(repository.UpdateFreeTime)
             .LogError()
             .Match(x => Ok(x), e => e.ToActonResult());

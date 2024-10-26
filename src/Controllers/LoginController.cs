@@ -22,7 +22,7 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
             .Tap(x => Log.Debug("Logging in {Username}", x.Username))
             .Map(RequestToPlayerEntity)
             .Bind(repo.GetPlayer)
-            .Map(PlayerToLoginResponse)
+            .Bind(PlayerToLoginResponse)
             .CountRequest()
             .CountFailedRequest()
             .LogError()
@@ -37,22 +37,16 @@ public class LoginController(IMongoRepository repo, IConfiguration config) : Con
             .Map(RequestToEntity)
             .Bind(repo.CheckIfUserExists)
             .Bind(repo.RegisterPlayer)
-            .Map(PlayerToLoginResponse)
+            .Bind(PlayerToLoginResponse)
             .CountRequest()
             .CountFailedRequest()
             .LogError()
             .Match(Ok, e => e.ToActonResult());
 
-    private LoginResponse PlayerToLoginResponse(PlayerResponse response)
+    private Result<LoginResponse, Exception> PlayerToLoginResponse(PlayerResponse response)
     {
         var jwt = config.GetRequiredSection(JwtOptions.Section).Get<JwtOptions>();
-        //TODO Add test when this is null
-        var token = TokenEndpoint.Connect(jwt!, response);
-        return new()
-        {
-            Token = token.AccessToken,
-            Player = response,
-            Expiration = token.Expiration,
-        };
+        return TokenEndpoint.Connect(jwt!, response)
+            .Map(t => new LoginResponse() { Token = t.AccessToken, Player = response, Expiration = t.Expiration });
     }
 }

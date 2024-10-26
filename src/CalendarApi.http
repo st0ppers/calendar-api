@@ -4,3 +4,6 @@ GET {{CalendarApi_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+GET{{CalendarApi_HostAddress}}/api/Player/1/player
+Accept: application/json
+###
